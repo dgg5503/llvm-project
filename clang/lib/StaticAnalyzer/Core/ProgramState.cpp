@@ -24,6 +24,11 @@
 using namespace clang;
 using namespace ento;
 
+// Track invalidated memory regions per ProgramState so reassignment because of
+// invalidation is presented to the user.
+REGISTER_SET_FACTORY_WITH_PROGRAMSTATE(InvalidatedMemoryRegionSet,
+                                       const MemRegion *)
+
 namespace clang { namespace  ento {
 /// Increments the number of times this state is referenced.
 
@@ -190,8 +195,31 @@ ProgramStateRef ProgramState::invalidateRegions(
         NewState, IS, TopLevelInvalidated, Call, *ITraits);
   }
 
+  auto InvalidatedMemoryRegions = NewState->get<InvalidatedMemoryRegionSet>();
+  auto &InvalidatedMemoryRegionSetFactory = NewState->get_context<InvalidatedMemoryRegionSet>();
+  for (const MemRegion *R : Invalidated) {
+    InvalidatedMemoryRegions =
+        InvalidatedMemoryRegionSetFactory.add(InvalidatedMemoryRegions, R);
+  }
+  NewState =
+      NewState->set<InvalidatedMemoryRegionSet>(InvalidatedMemoryRegions);
+
   return Eng.processRegionChanges(NewState, IS, TopLevelInvalidated,
                                   Invalidated, LCtx, Call);
+}
+
+bool ProgramState::wasInvalidated(const MemRegion *Region) const {
+  assert(Region);
+  if (this->contains<InvalidatedMemoryRegionSet>(Region))
+    return true;
+
+  for (const MemRegion *largerRegion :
+       this->get<InvalidatedMemoryRegionSet>()) {
+    if (Region->isSubRegionOf(largerRegion))
+      return true;
+  }
+
+  return false;
 }
 
 ProgramStateRef ProgramState::killBinding(Loc LV) const {
@@ -498,6 +526,21 @@ void ProgramState::printJson(raw_ostream &Out, const LocationContext *LCtx,
 
   // Print checker-specific data.
   Mgr.getOwningEngine().printJson(Out, this, LCtx, NL, Space, IsDot);
+
+  // TODO: Invalidated memory regions stick around from the first state onward
+  // after they're detected. Would it make sense to clear them, or should the
+  // state be associated with when the memory was invalidated and carried
+  // forward so the diagnostic can inform the user when invalidation occurred?
+  // Would this ever be useful?
+  /*
+  const InvalidatedMemoryRegionSetTy regions =
+        this->get<InvalidatedMemoryRegionSet>();
+  unsigned int count = 0;
+  for (const MemRegion *region : regions) {
+    count++;
+  }
+  Indent(Out, Space, IsDot) << "\"invalidated_regions\": " << count << NL;
+  */
 
   --Space;
   Indent(Out, Space, IsDot) << '}';

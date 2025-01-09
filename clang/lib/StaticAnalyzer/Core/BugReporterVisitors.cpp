@@ -1353,6 +1353,23 @@ static void showBRDefaultDiagnostics(llvm::raw_svector_ostream &OS,
     OS << " to ";
     SI.Dest->printPretty(OS);
   }
+
+  // If the destination was invalidated, let the user know with a reason if
+  // possible.
+  if (const ExplodedNode *StoreSite = SI.StoreSite) {
+    // TODO: Since the store site ProgramState contains all memory regions
+    // invalidated up to that point, is it possible a memory region could have
+    // been become valid again between the start, invalidation point, and this
+    // point? If so, would it make sense to tie the invalidation of that region
+    // to its corresponding state?
+    if (StoreSite->getState()->wasInvalidated(SI.Dest)) {
+      OS << " (previous assignment invalidated";
+      // TODO: Are tags the best way to represent where invalidation happened?
+      if (auto tag = StoreSite->getLocation().getTag())
+        OS << " as part of " << tag->getTagDescription();
+      OS << ")";
+    }
+  }
 }
 
 static bool isTrivialCopyOrMoveCtor(const CXXConstructExpr *CE) {

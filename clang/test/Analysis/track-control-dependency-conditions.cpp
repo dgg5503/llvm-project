@@ -31,7 +31,7 @@ int flag;
 bool coin();
 
 void foo() {
-  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag', which participates in a condition later{{$}}}}
+  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag' (previous assignment invalidated), which participates in a condition later{{$}}}}
 }
 
 void test() {
@@ -60,7 +60,7 @@ int flag;
 bool coin();
 
 void foo() {
-  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag', which participates in a condition later{{$}}}}
+  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag' (previous assignment invalidated), which participates in a condition later{{$}}}}
 }
 
 void test() {
@@ -92,8 +92,8 @@ bool coin();
 
 void foo() {
   // coin() could write bar, do it's invalidated.
-  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag', which participates in a condition later{{$}}}}
-                 // tracking-note-re@-1{{{{^}}Value assigned to 'bar', which participates in a condition later{{$}}}}
+  flag = coin(); // tracking-note-re{{{{^}}Value assigned to 'flag' (previous assignment invalidated), which participates in a condition later{{$}}}}
+                 // tracking-note-re@-1{{{{^}}Value assigned to 'bar' (previous assignment invalidated as part of ExprEngine : Conservative eval call), which participates in a condition later{{$}}}}
 }
 
 int bar;
@@ -380,7 +380,7 @@ int flag = 0;
 int getInt();
 
 void foo() {
-  flag = getInt(); // tracking-note-re{{{{^}}Value assigned to 'flag', which participates in a condition later{{$}}}}
+  flag = getInt(); // tracking-note-re{{{{^}}Value assigned to 'flag' (previous assignment invalidated), which participates in a condition later{{$}}}}
 }
 
 void f() {
@@ -668,7 +668,7 @@ bool coin();
 
 void foo() {
   if ((flag = coin()))
-    // tracking-note-re@-1{{{{^}}Value assigned to 'flag', which participates in a condition later{{$}}}}
+    // tracking-note-re@-1{{{{^}}Value assigned to 'flag' (previous assignment invalidated), which participates in a condition later{{$}}}}
     // tracking-note-re@-2{{{{^}}Assuming 'flag' is not equal to 0, which participates in a condition later{{$}}}}
     // tracking-note-re@-3{{{{^}}Taking true branch{{$}}}}
     return;

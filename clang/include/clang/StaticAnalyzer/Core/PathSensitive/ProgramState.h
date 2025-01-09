@@ -338,6 +338,13 @@ public:
                     const CallEvent *Call = nullptr,
                     RegionAndSymbolInvalidationTraits *ITraits = nullptr) const;
 
+  /// Return if the provided \p Region was invalidated via
+  /// \c ProgramState::invalidateRegions at least once up to and including this
+  /// program state's point.
+  ///
+  /// \param Region the region to check if it has been invalidated.
+  [[nodiscard]] bool wasInvalidated(const MemRegion *Region) const;
+
   /// enterStackFrame - Returns the state for entry to the given stack frame,
   ///  preserving the current state.
   [[nodiscard]] ProgramStateRef
