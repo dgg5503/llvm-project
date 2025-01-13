@@ -151,20 +151,22 @@ ProgramStateRef ProgramState::invalidateRegions(
     RegionList Regions, const Stmt *S, unsigned Count,
     const LocationContext *LCtx, bool CausedByPointerEscape,
     InvalidatedSymbols *IS, const CallEvent *Call,
-    RegionAndSymbolInvalidationTraits *ITraits) const {
+    RegionAndSymbolInvalidationTraits *ITraits,
+    const InvalidationCause *Cause) const {
   SmallVector<SVal, 8> Values;
   for (const MemRegion *Reg : Regions)
     Values.push_back(loc::MemRegionVal(Reg));
 
   return invalidateRegions(Values, S, Count, LCtx, CausedByPointerEscape, IS,
-                           Call, ITraits);
+                           Call, ITraits, Cause);
 }
 
 ProgramStateRef ProgramState::invalidateRegions(
     ValueList Values, const Stmt *S, unsigned Count,
     const LocationContext *LCtx, bool CausedByPointerEscape,
     InvalidatedSymbols *IS, const CallEvent *Call,
-    RegionAndSymbolInvalidationTraits *ITraits) const {
+    RegionAndSymbolInvalidationTraits *ITraits,
+    const InvalidationCause *Cause) const {
 
   ProgramStateManager &Mgr = getStateManager();
   ExprEngine &Eng = Mgr.getOwningEngine();
@@ -181,7 +183,7 @@ ProgramStateRef ProgramState::invalidateRegions(
   StoreManager::InvalidatedRegions Invalidated;
   const StoreRef &NewStore = Mgr.StoreMgr->invalidateRegions(
       getStore(), Values, S, Count, LCtx, Call, *IS, *ITraits,
-      &TopLevelInvalidated, &Invalidated);
+      &TopLevelInvalidated, &Invalidated, Cause);
 
   ProgramStateRef NewState = makeWithStore(NewStore);
 

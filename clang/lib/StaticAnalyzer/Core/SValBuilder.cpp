@@ -25,6 +25,7 @@
 #include "clang/StaticAnalyzer/Core/PathSensitive/AnalysisManager.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/BasicValueFactory.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExprEngine.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/InvalidationCause.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/MemRegion.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState_Fwd.h"
@@ -154,7 +155,8 @@ SValBuilder::getRegionValueSymbolVal(const TypedValueRegion *region) {
 DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const void *SymbolTag,
                                                    const Expr *Ex,
                                                    const LocationContext *LCtx,
-                                                   unsigned Count) {
+                                                   unsigned Count,
+                                                   const InvalidationCause *C) {
   QualType T = Ex->getType();
 
   if (T->isNullPtrType())
@@ -166,21 +168,24 @@ DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const void *SymbolTag,
   if (Ex->isGLValue())
     T = LCtx->getAnalysisDeclContext()->getASTContext().getPointerType(ExType);
 
-  return conjureSymbolVal(SymbolTag, Ex, LCtx, T, Count);
+  return conjureSymbolVal(SymbolTag, Ex, LCtx, T, Count, C);
 }
 
 DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const void *symbolTag,
                                                    const Stmt *St,
                                                    const LocationContext *LCtx,
                                                    QualType type,
-                                                   unsigned count) {
+                                                   unsigned count,
+                                                   const InvalidationCause *C) {
   if (type->isNullPtrType())
     return makeZeroVal(type);
 
   if (!SymbolManager::canSymbolicate(type))
     return UnknownVal();
 
-  SymbolRef sym = SymMgr.conjureSymbol(St, LCtx, type, count, symbolTag);
+  SymbolRef sym = !C ? static_cast<const SymExpr*>(SymMgr.conjureSymbol(St, LCtx, type, count, symbolTag))
+                     : SymMgr.getSymbolInvalidationArtifact(St, LCtx, type,
+                                                            count, C, symbolTag);
 
   if (Loc::isLocType(type))
     return loc::MemRegionVal(MemMgr.getSymbolicRegion(sym));
@@ -191,14 +196,17 @@ DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const void *symbolTag,
 DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const Stmt *stmt,
                                                    const LocationContext *LCtx,
                                                    QualType type,
-                                                   unsigned visitCount) {
+                                                   unsigned visitCount,
+                                                   const InvalidationCause *C) {
   if (type->isNullPtrType())
     return makeZeroVal(type);
 
   if (!SymbolManager::canSymbolicate(type))
     return UnknownVal();
 
-  SymbolRef sym = SymMgr.conjureSymbol(stmt, LCtx, type, visitCount);
+  SymbolRef sym = !C ? static_cast<const SymExpr*>(SymMgr.conjureSymbol(stmt, LCtx, type, visitCount))
+                     : SymMgr.getSymbolInvalidationArtifact(stmt, LCtx, type,
+                                                            visitCount, C);
 
   if (Loc::isLocType(type))
     return loc::MemRegionVal(MemMgr.getSymbolicRegion(sym));

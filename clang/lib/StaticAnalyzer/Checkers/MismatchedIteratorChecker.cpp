@@ -200,6 +200,8 @@ void MismatchedIteratorChecker::verifyMatch(CheckerContext &C, SVal Iter,
   if (const auto *ContSym = Cont->getSymbolicBase()) {
     if (isa<SymbolConjured>(ContSym->getSymbol()))
       return;
+    if (isa<SymbolInvalidationArtifact>(ContSym->getSymbol()))
+      return;
   }
 
   auto State = C.getState();
@@ -215,6 +217,8 @@ void MismatchedIteratorChecker::verifyMatch(CheckerContext &C, SVal Iter,
   // for each call. This may cause false positives so omit them from the check.
   if (const auto *ContSym = IterCont->getSymbolicBase()) {
     if (isa<SymbolConjured>(ContSym->getSymbol()))
+      return;
+    if (isa<SymbolInvalidationArtifact>(ContSym->getSymbol()))
       return;
   }
 
@@ -245,6 +249,8 @@ void MismatchedIteratorChecker::verifyMatch(CheckerContext &C, SVal Iter1,
   if (const auto *ContSym = IterCont1->getSymbolicBase()) {
     if (isa<SymbolConjured>(ContSym->getSymbol()))
       return;
+    if (isa<SymbolInvalidationArtifact>(ContSym->getSymbol()))
+      return;
   }
 
   const auto *Pos2 = getIteratorPosition(State, Iter2);
@@ -254,6 +260,8 @@ void MismatchedIteratorChecker::verifyMatch(CheckerContext &C, SVal Iter1,
   const auto *IterCont2 = Pos2->getContainer();
   if (const auto *ContSym = IterCont2->getSymbolicBase()) {
     if (isa<SymbolConjured>(ContSym->getSymbol()))
+      return;
+    if (isa<SymbolInvalidationArtifact>(ContSym->getSymbol()))
       return;
   }
 

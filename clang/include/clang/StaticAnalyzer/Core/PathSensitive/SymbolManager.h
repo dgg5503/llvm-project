@@ -39,6 +39,7 @@ namespace ento {
 
 class BasicValueFactory;
 class StoreManager;
+class InvalidationCause;
 
 ///A symbol representing the value stored at a MemRegion.
 class SymbolRegionValue : public SymbolData {
@@ -212,6 +213,65 @@ public:
   // Implement isa<T> support.
   static bool classof(const SymExpr *SE) {
     return SE->getKind() == SymbolExtentKind;
+  }
+};
+
+/// TODO: document this.
+class SymbolInvalidationArtifact : public SymbolData {
+  const Stmt *S;
+  QualType T;
+  unsigned Count;
+  const LocationContext *LCtx;
+  const void *SymbolTag;
+  const InvalidationCause *Cause;
+
+  friend class SymExprAllocator;
+  SymbolInvalidationArtifact(SymbolID sym, const Stmt *s,
+                             const LocationContext *lctx, QualType t,
+                             unsigned count,
+                             const void *symbolTag, const InvalidationCause *cause)
+      : SymbolData(SymbolInvalidationArtifactKind, sym), S(s), T(t),
+        Count(count), LCtx(lctx), SymbolTag(symbolTag), Cause(cause) {
+    assert(lctx);
+    assert(isValidTypeForSymbol(t));
+    assert(cause);
+  }
+
+public:
+  LLVM_ATTRIBUTE_RETURNS_NONNULL
+  const InvalidationCause *getCause() const { return Cause; }
+
+  /// It might return null.
+  const Stmt *getStmt() const { return S; }
+  unsigned getCount() const { return Count; }
+  /// It might return null.
+  const void *getTag() const { return SymbolTag; }
+
+  QualType getType() const override;
+
+  StringRef getKindStr() const override;
+
+  void dumpToStream(raw_ostream &os) const override;
+
+  static void Profile(llvm::FoldingSetNodeID &profile, const Stmt *S,
+                      const LocationContext *LCtx, QualType T, unsigned Count,
+                      const void *SymbolTag, const InvalidationCause *Cause) {
+    profile.AddInteger((unsigned)SymbolInvalidationArtifactKind);
+    profile.AddPointer(S);
+    profile.AddPointer(LCtx);
+    profile.Add(T);
+    profile.AddInteger(Count);
+    profile.AddPointer(SymbolTag);
+    profile.AddPointer(Cause);
+  }
+
+
+  void Profile(llvm::FoldingSetNodeID &profile) override {
+    Profile(profile, S, LCtx, T, Count, SymbolTag, Cause);
+  }
+
+  static bool classof(const SymExpr *SE) {
+    return SE->getKind() == SymbolInvalidationArtifactKind;
   }
 };
 
@@ -545,6 +605,15 @@ public:
                                       unsigned VisitCount,
                                       const void *SymbolTag = nullptr) {
     return conjureSymbol(E, LCtx, E->getType(), VisitCount, SymbolTag);
+  }
+
+  const SymbolInvalidationArtifact*
+  getSymbolInvalidationArtifact(const Stmt *E,
+                                      const LocationContext *LCtx, QualType T,
+                                      unsigned VisitCount,
+                                      const InvalidationCause *C,
+                                      const void *SymbolTag = nullptr) {
+    return acquire<SymbolInvalidationArtifact>(E, LCtx, T, VisitCount, SymbolTag, C);
   }
 
   QualType getType(const SymExpr *SE) const {

@@ -39,6 +39,7 @@
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExplodedGraph.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExprEngine.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/InvalidationCause.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/MemRegion.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState_Fwd.h"
@@ -1352,6 +1353,16 @@ static void showBRDefaultDiagnostics(llvm::raw_svector_ostream &OS,
   if (HasSuffix) {
     OS << " to ";
     SI.Dest->printPretty(OS);
+  }
+
+  if (const auto *Invalidation =
+          dyn_cast_or_null<SymbolInvalidationArtifact>(SI.Value.getAsSymbol())) {
+    if (isa<LoopWidening>(Invalidation->getCause())) {
+      OS << " (loop-widening invalidated this symbol here)";
+    }
+    if (isa<ConservativeEvalCall>(Invalidation->getCause())) {
+      OS << " (conservative-eval-call invalidated this symbol here)";
+    }
   }
 }
 

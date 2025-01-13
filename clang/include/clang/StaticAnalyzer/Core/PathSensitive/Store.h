@@ -47,6 +47,7 @@ class CallEvent;
 class ProgramStateManager;
 class ScanReachableSymbols;
 class SymbolReaper;
+class InvalidationCause;
 
 using InvalidatedSymbols = llvm::DenseSet<SymbolRef>;
 
@@ -236,7 +237,8 @@ public:
       Store store, ArrayRef<SVal> Values, const Stmt *S, unsigned Count,
       const LocationContext *LCtx, const CallEvent *Call,
       InvalidatedSymbols &IS, RegionAndSymbolInvalidationTraits &ITraits,
-      InvalidatedRegions *TopLevelRegions, InvalidatedRegions *Invalidated) = 0;
+      InvalidatedRegions *TopLevelRegions, InvalidatedRegions *Invalidated,
+      const InvalidationCause *Cause) = 0;
 
   /// enterStackFrame - Let the StoreManager to do something when execution
   /// engine is about to execute into a callee.

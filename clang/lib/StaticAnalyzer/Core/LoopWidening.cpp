@@ -16,6 +16,7 @@
 #include "clang/AST/AST.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExplodedGraph.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/InvalidationCause.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/LoopWidening.h"
 
 using namespace clang;
@@ -93,9 +94,10 @@ ProgramStateRef getWidenedLoopState(ProgramStateRef PrevState,
                      RegionAndSymbolInvalidationTraits::TK_PreserveContents);
   }
 
+  // TODO(dgliner): Leak, need to figure out a place to store InvalidationCause
   return PrevState->invalidateRegions(Regions, getLoopCondition(LoopStmt),
                                       BlockCount, LCtx, true, nullptr, nullptr,
-                                      &ITraits);
+                                      &ITraits, new LoopWidening);
 }
 
 } // end namespace ento

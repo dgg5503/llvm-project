@@ -365,7 +365,8 @@ static bool isInvalidatedSymbolRegion(const MemRegion *Region) {
   SymbolRef Symbol = SymReg->getSymbol();
 
   const auto *DerS = dyn_cast<SymbolDerived>(Symbol);
-  return DerS && isa_and_nonnull<SymbolConjured>(DerS->getParentSymbol());
+  return DerS && (isa_and_nonnull<SymbolConjured>(DerS->getParentSymbol()) ||
+                  isa_and_nonnull<SymbolInvalidationArtifact>(DerS->getParentSymbol()));
 }
 
 void StackAddrEscapeChecker::checkEndFunction(const ReturnStmt *RS,

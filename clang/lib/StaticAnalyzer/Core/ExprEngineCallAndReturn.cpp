@@ -20,6 +20,7 @@
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/DynamicExtent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExprEngine.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/InvalidationCause.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/Casting.h"
@@ -834,7 +835,8 @@ ProgramStateRef ExprEngine::bindReturnValue(const CallEvent &Call,
 // a conjured return value.
 void ExprEngine::conservativeEvalCall(const CallEvent &Call, NodeBuilder &Bldr,
                                       ExplodedNode *Pred, ProgramStateRef State) {
-  State = Call.invalidateRegions(currBldrCtx->blockCount(), State);
+  // TODO(dgliner): Leak, need to figure out a place to store InvalidationCause
+  State = Call.invalidateRegions(currBldrCtx->blockCount(), State, new ConservativeEvalCall);
   State = bindReturnValue(Call, Pred->getLocationContext(), State);
 
   // And make the result node.

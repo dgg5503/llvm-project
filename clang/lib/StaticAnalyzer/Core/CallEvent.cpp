@@ -232,7 +232,8 @@ static void findPtrToConstParams(llvm::SmallSet<unsigned, 4> &PreserveArgs,
 }
 
 ProgramStateRef CallEvent::invalidateRegions(unsigned BlockCount,
-                                             ProgramStateRef Orig) const {
+                                             ProgramStateRef Orig,
+                                             const InvalidationCause *Cause) const {
   ProgramStateRef Result = (Orig ? Orig : getState());
 
   // Don't invalidate anything if the callee is marked pure/const.
@@ -283,7 +284,7 @@ ProgramStateRef CallEvent::invalidateRegions(unsigned BlockCount,
   return Result->invalidateRegions(ValuesToInvalidate, getOriginExpr(),
                                    BlockCount, getLocationContext(),
                                    /*CausedByPointerEscape*/ true,
-                                   /*Symbols=*/nullptr, this, &ETraits);
+                                   /*Symbols=*/nullptr, this, &ETraits, Cause);
 }
 
 ProgramPoint CallEvent::getProgramPoint(bool IsPreVisit,

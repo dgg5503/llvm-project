@@ -18,6 +18,7 @@
 #include "clang/Analysis/Analyses/LiveVariables.h"
 #include "clang/Analysis/AnalysisDeclContext.h"
 #include "clang/Basic/LLVM.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/InvalidationCause.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/MemRegion.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/SVals.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/Store.h"
@@ -40,6 +41,7 @@ StringRef SymbolDerived::getKindStr() const { return "derived_$"; }
 StringRef SymbolExtent::getKindStr() const { return "extent_$"; }
 StringRef SymbolMetadata::getKindStr() const { return "meta_$"; }
 StringRef SymbolRegionValue::getKindStr() const { return "reg_$"; }
+StringRef SymbolInvalidationArtifact::getKindStr() const { return "inval_$"; }
 
 LLVM_DUMP_METHOD void SymExpr::dump() const { dumpToStream(llvm::errs()); }
 
@@ -108,6 +110,15 @@ void SymbolRegionValue::dumpToStream(raw_ostream &os) const {
   os << getKindStr() << getSymbolID() << '<' << getType() << ' ' << R << '>';
 }
 
+void SymbolInvalidationArtifact::dumpToStream(raw_ostream &os) const {
+  os << getKindStr() << getSymbolID() << '{' << T << ", LC" << LCtx->getID();
+  if (S)
+    os << ", S" << S->getID(LCtx->getDecl()->getASTContext());
+  else
+    os << ", no stmt";
+  os << ", #" << Count << '}';
+}
+
 bool SymExpr::symbol_iterator::operator==(const symbol_iterator &X) const {
   return itr == X.itr;
 }
@@ -139,6 +150,7 @@ void SymExpr::symbol_iterator::expand() {
     case SymExpr::SymbolConjuredKind:
     case SymExpr::SymbolDerivedKind:
     case SymExpr::SymbolExtentKind:
+    case SymExpr::SymbolInvalidationArtifactKind:
     case SymExpr::SymbolMetadataKind:
       return;
     case SymExpr::SymbolCastKind:
@@ -182,6 +194,10 @@ QualType SymbolMetadata::getType() const {
 
 QualType SymbolRegionValue::getType() const {
   return R->getValueType();
+}
+
+QualType SymbolInvalidationArtifact::getType() const {
+    return T;
 }
 
 bool SymbolManager::canSymbolicate(QualType T) {
@@ -306,6 +322,7 @@ bool SymbolReaper::isLive(SymbolRef sym) {
   case SymExpr::SymbolRegionValueKind:
     KnownLive = isReadableRegion(cast<SymbolRegionValue>(sym)->getRegion());
     break;
+  case SymExpr::SymbolInvalidationArtifactKind:
   case SymExpr::SymbolConjuredKind:
     KnownLive = false;
     break;
@@ -412,3 +429,8 @@ bool SymbolReaper::isLive(const VarRegion *VR, bool includeStoreBindings) const{
 
   return VarContext->isParentOf(CurrentContext);
 }
+
+// TODO(dgliner): Implement & move to InvalidationCause.cpp
+void InvalidationCause::anchor() {};
+void InvalidationCause::dump() const {};
+void InvalidationCause::dump(raw_ostream &OS) const {};

@@ -38,6 +38,7 @@ namespace ento {
 class AnalysisManager;
 class CallEvent;
 class CallEventManager;
+class InvalidationCause;
 
 typedef std::unique_ptr<ConstraintManager>(*ConstraintManagerCreator)(
     ProgramStateManager &, ExprEngine *);
@@ -329,14 +330,16 @@ public:
                     unsigned BlockCount, const LocationContext *LCtx,
                     bool CausesPointerEscape, InvalidatedSymbols *IS = nullptr,
                     const CallEvent *Call = nullptr,
-                    RegionAndSymbolInvalidationTraits *ITraits = nullptr) const;
+                    RegionAndSymbolInvalidationTraits *ITraits = nullptr,
+                    const InvalidationCause *Cause = nullptr) const;
 
   [[nodiscard]] ProgramStateRef
   invalidateRegions(ArrayRef<SVal> Values, const Stmt *S, unsigned BlockCount,
                     const LocationContext *LCtx, bool CausesPointerEscape,
                     InvalidatedSymbols *IS = nullptr,
                     const CallEvent *Call = nullptr,
-                    RegionAndSymbolInvalidationTraits *ITraits = nullptr) const;
+                    RegionAndSymbolInvalidationTraits *ITraits = nullptr,
+                    const InvalidationCause *Cause = nullptr) const;
 
   /// enterStackFrame - Returns the state for entry to the given stack frame,
   ///  preserving the current state.

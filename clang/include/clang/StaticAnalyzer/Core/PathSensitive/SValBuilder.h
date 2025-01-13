@@ -201,14 +201,17 @@ public:
   DefinedOrUnknownSVal conjureSymbolVal(const void *symbolTag,
                                         const Expr *expr,
                                         const LocationContext *LCtx,
-                                        unsigned count);
+                                        unsigned count,
+                                        const InvalidationCause *C = nullptr);
   DefinedOrUnknownSVal conjureSymbolVal(const void *symbolTag, const Stmt *S,
                                         const LocationContext *LCtx,
-                                        QualType type, unsigned count);
+                                        QualType type, unsigned count,
+                                        const InvalidationCause *C = nullptr);
   DefinedOrUnknownSVal conjureSymbolVal(const Stmt *stmt,
                                         const LocationContext *LCtx,
                                         QualType type,
-                                        unsigned visitCount);
+                                        unsigned visitCount,
+                                        const InvalidationCause *C = nullptr);
 
   /// Conjure a symbol representing heap allocated memory region.
   ///
